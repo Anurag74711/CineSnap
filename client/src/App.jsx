@@ -1,3 +1,4 @@
+
 import React from 'react'
 import Navbar from './components/Navbar.jsx'
 import { Routes,Route, useLocation } from 'react-router-dom'  
@@ -14,9 +15,15 @@ import Dashboard from './pages/admin/Dashboard.jsx'
 import AddShow from './pages/admin/AddShow.jsx'
 import ListShow from './pages/admin/ListShow.jsx'
 import ListBooking from './pages/admin/ListBooking.jsx'
+import { useAppContext } from './context/AppContext.jsx'
+import { SignIn } from '@clerk/clerk-react'
 
 const App = () => {
+
+  const {user}=useAppContext()
+
   const isAdminRoute= useLocation().pathname.startsWith('/admin')
+
   return (
     <>
     <Toaster/>
@@ -50,3 +57,4 @@ const App = () => {
 }
 
 export default App
+

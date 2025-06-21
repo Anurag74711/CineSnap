@@ -2,10 +2,13 @@ import React, { useEffect, useState } from "react";
 import { dummyShowsData } from "../../assets/assets";
 import Loading from "../../components/Loading";
 import Title from "../../components/admin/Title";
-import { CheckIcon, DeleteIcon, StarIcon } from "lucide-react"; 
+import { CheckIcon, DeleteIcon, LucideToyBrick, StarIcon } from "lucide-react"; 
 import { kConverter } from "../../libs/kConverter";
+import { useAppContext } from "../../context/AppContext";
 
 const AddShow = () => {
+   const {axios , getToken,user}=useAppContext()
+
   const currency = import.meta.env.VITE_CURRENCY;
   const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -14,7 +17,16 @@ const AddShow = () => {
   const [showPrice, setShowPrice] = useState("");
 
   const fetchNowPlayingMovies = async () => {
-    setNowPlayingMovies(dummyShowsData);
+
+    try {
+      const {data}=await axios.get('/api/show/now-playing',{headers:{Authorization:`Bearer ${await getToken()}`}})
+      if(data.success){
+        setNowPlayingMovies(data.movies)
+      }
+    } catch (error) {
+      console.error('Error fetching now playing movies:', error);
+    }
+     
   };
 
   const handleDateTimeAdd = () => {
