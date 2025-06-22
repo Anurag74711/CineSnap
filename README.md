@@ -32,7 +32,7 @@
 📸 Preview
 
 ![Screenshot 2025-06-22 232917](https://github.com/user-attachments/assets/dfb4d7fe-4179-409c-adb5-eb4490cbe5a7)
-![Screensh![Screen![Screenshot 2025-06-22 234532](https://github.com/user-attachments/assets/f7969759-f2c3-4bb6-a7c9-b761e8cdc4e3)
+![Screenshot 2025-06-22 234532](https://github.com/user-attachments/assets/f7969759-f2c3-4bb6-a7c9-b761e8cdc4e3)
 
 ![Screenshot 2025-06-22 234512](https://github.com/user-attachments/assets/288624d4-55a3-44c6-9cc6-fbe855ffe834)
 ![Screenshot 2025-06-22 234532](https://github.com/user-attachments/assets/38e8877b-cd58-42ea-be80-319dc52c18c7)
