@@ -13,7 +13,7 @@ useEffect(()=>{
 },[])
 
 
-  return (
+  return isAdmin? (
     <>
       <AdminNavbar />
       {/* Flex container for sidebar + main content */}
@@ -24,7 +24,7 @@ useEffect(()=>{
         </div>
       </div>
     </>
-  )
+  ):<Loading/>
 }
 
 export default Layout

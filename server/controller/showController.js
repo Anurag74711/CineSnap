@@ -1,57 +1,56 @@
 import axios from 'axios';
 import Movie from '../models/Movies.js';
 import Show from '../models/Show.js';
+
+// Fetch now playing movies from TMDB
 export const getNowPlayingMovies = async (req, res) => {
   try {
     const { data } = await axios.get('https://api.themoviedb.org/3/movie/now_playing', {
       headers: {
-        Authorization: `Bearer ${process.env.TMDB_API_KEY}`
-      }
+        Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
+      },
     });
-  
-
 
     const movies = data.results;
-    res.json({ success: true, movies: movies });
+    res.json({ success: true, movies });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: error?.response?.data?.status_message || error.message || "Unknown error occurred"
+      message: error?.response?.data?.status_message || error.message || 'Unknown error occurred',
     });
   }
 };
 
-//api to add new show to database
+// Add new show to database
 export const addShow = async (req, res) => {
   try {
+    const { movieId, showsInput, showPrice } = req.body;
 
-    const{movieId,showsInput,showPrice}=req.body
-    let movie =await  Movie.findById(movieId)
+    if (!movieId || !Array.isArray(showsInput) || !showPrice) {
+      return res.status(400).json({ success: false, message: 'Invalid input' });
+    }
 
-    if(!movie){
-      // FETCH MOVIE DETAILS FROM TMDB API
-      const [moviesDetailsResponse, moviesCreditsResponse] = await Promise.all([
+    let movie = await Movie.findById(movieId);
+
+    if (!movie) {
+      const [detailsRes, creditsRes] = await Promise.all([
         axios.get(`https://api.themoviedb.org/3/movie/${movieId}`, {
           headers: {
-            Authorization: `Bearer ${process.env.TMDB_API_KEY}`
-          }
+            Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
+          },
         }),
-      
-        axios.get(`https://api.themoviedb.org/3/movie/${movieId}/credits`,{
+        axios.get(`https://api.themoviedb.org/3/movie/${movieId}/credits`, {
           headers: {
-            Authorization: `Bearer ${process.env.TMDB_API_KEY}`
-          }
+            Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
+          },
         }),
-
-
-
       ]);
 
-      const movieApiData=moviesDetailsResponse.data;
-      const movieCreditsData=moviesCreditsResponse.data;
+      const movieApiData = detailsRes.data;
+      const movieCreditsData = creditsRes.data;
 
-      const movieDetails={
+      const movieDetails = {
         _id: movieId,
         title: movieApiData.title,
         overview: movieApiData.overview,
@@ -61,96 +60,90 @@ export const addShow = async (req, res) => {
         casts: movieCreditsData.cast,
         release_date: movieApiData.release_date,
         original_language: movieApiData.original_language,
-        tagline: movieApiData.tagline || " ",
+        tagline: movieApiData.tagline || '',
         vote_average: movieApiData.vote_average,
         runtime: movieApiData.runtime,
+      };
+
+      movie = await Movie.create(movieDetails);
+    }
+
+    const showsToCreate = [];
+    showsInput.forEach(({ date, time }) => {
+      if (Array.isArray(time)) {
+        time.forEach((t) => {
+          const dateTimeString = `${date}T${t}`;
+          showsToCreate.push({
+            movie: movieId,
+            showDateTime: new Date(dateTimeString),
+            showPrice,
+            occupiedSeats: {},
+          });
+        });
       }
+    });
 
-      //add moovie to database
-      movie=await Movie.create(movieDetails);
-
-
-    const showsToCreate=[]
-    showsInput.forEach(show=>{
-      const showDate =show.date;
-      show.time.forEach(time=>{
-        const dateTimeString = `${showDate}T${time}`;
-        showsToCreate.push({
-          movie:movieId,
-          showDateTime:new Date(dateTimeString),
-          showPrice,
-          occupiedSeats:{}
-        })
-      })
-
-    })
-    if(showsToCreate.length>0){
+    if (showsToCreate.length > 0) {
       await Show.insertMany(showsToCreate);
     }
 
-    res.json({success:true,message:"Show added successfully"})
-
- }
-}
-    
-    
-   catch (error) {
-     console.error(error);
+    res.json({ success: true, message: 'Show added successfully' });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: error?.response?.data?.status_message || error.message || "Unknown error occurred"
+      message: error?.response?.data?.status_message || error.message || 'Unknown error occurred',
     });
   }
-}
+};
 
-//api to get shows of specific movie
+// Get upcoming shows for all movies
 export const getShows = async (req, res) => {
   try {
-    const shows = await Show.find({ showDateTime: { $gte: new Date() } }).populate('movie').sort({ showDateTime: 1 });
+    const shows = await Show.find({ showDateTime: { $gte: new Date() } })
+      .populate('movie')
+      .sort({ showDateTime: 1 });
 
-    // filter unique show
-    const uniqueShows = new Set(shows.map(shows => shows.movie));
+    const uniqueMovies = new Map();
+    shows.forEach((show) => {
+      if (!uniqueMovies.has(show.movie._id.toString())) {
+        uniqueMovies.set(show.movie._id.toString(), show.movie);
+      }
+    });
 
-    res.json({ success: true, shows: Array.from(uniqueShows) });
-
-
+    res.json({ success: true, shows: Array.from(uniqueMovies.values()) });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: error?.response?.data?.status_message || error.message || "Unknown error occurred"
+      message: error?.response?.data?.status_message || error.message || 'Unknown error occurred',
     });
   }
 };
 
-//api to get a single show from database 
-
+// Get shows for a specific movie
 export const getShow = async (req, res) => {
   try {
-    const {movieId}=req.params;
-    // get all upcoming shows for the movie
+    const { movieId } = req.params;
     const shows = await Show.find({ movie: movieId, showDateTime: { $gte: new Date() } });
-
     const movie = await Movie.findById(movieId);
-    const dateTime = {}
-    shows.forEach(show => {
+
+    const dateTime = {};
+    shows.forEach((show) => {
       const date = show.showDateTime.toISOString().split('T')[0];
-      if(!dateTime[date]){
-        dateTime[date]=[]
+      if (!dateTime[date]) {
+        dateTime[date] = [];
       }
-      dateTime[date].push({time:show.showDateTime, showId:show._id}) });
+      dateTime[date].push({ time: show.showDateTime.toISOString().split('T')[1], showId: show._id });
+    });
 
-    res.json({ success: true, movie: movie, dateTime: dateTime });
-  
-    
-
-
-
+    res.json({ success: true, movie, dateTime });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       success: false,
-      message: error?.response?.data?.status_message || error.message || "Unknown error occurred"
+      message: error?.response?.data?.status_message || error.message || 'Unknown error occurred',
     });
   }
 };
+
